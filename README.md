@@ -197,11 +197,11 @@ ValleyAuth uses a certificate authority (ValleyCert) to gate protected operation
 
 ### Public CA (testing)
 
-The default CA is at `https://cert.valleyrealm.qd.je`. This works out of the box for development and testing. Leave the default in config:
+The default CA is at `https://cert.strawberry.dpdns.org`. This works out of the box for development and testing. Leave the default in config:
 
 ```yaml
 certificate:
-  api-url: "https://cert.valleyrealm.qd.je"
+  api-url: "https://cert.strawberry.dpdns.org"
 ```
 
 ### Self-hosted CA (production)
@@ -620,7 +620,7 @@ certificate:
   # ValleyCert API URL.
   # Default is the public CA for testing.
   # For production, host your own and set the URL here.
-  api-url: "https://cert.valleyrealm.qd.je"
+  api-url: "https://cert.strawberry.dpdns.org"
 
   # Documentation URL shown in security warnings and log messages.
   docs-url: "https://docs.valleyrealm.qd.je/certificates"
@@ -734,7 +734,7 @@ Each identity type has a distinct canonical name (via prefixes). This prevents:
 
 **Fix**:
 1. Check `certificate.api-url` in config.yml
-2. Verify network connectivity: `curl https://cert.valleyrealm.qd.je/api/certificate/validate/test`
+2. Verify network connectivity: `curl https://cert.strawberry.dpdns.org/api/certificate/validate/test`
 3. Check server logs for `[ValleyCert Client]` messages
 4. If the CA is down, ValleyAuth runs in offline mode with cached certs
 

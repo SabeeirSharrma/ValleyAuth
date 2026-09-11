@@ -42,9 +42,9 @@ security:
 
 # Certificate Authority configuration
 # The ValleyCert API URL where plugins request certificates
-# Example: https://cert.valleyrealm.qd.je
+# Example: https://cert.strawberry.dpdns.org
 certificate:
-  api-url: "https://cert.valleyrealm.qd.je"
+  api-url: "https://cert.strawberry.dpdns.org"
   # Documentation URL shown in security warnings
   docs-url: "https://docs.valleyrealm.qd.je/certificates"
 

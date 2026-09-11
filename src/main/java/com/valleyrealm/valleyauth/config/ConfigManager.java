@@ -43,7 +43,7 @@ public class ConfigManager {
     private boolean logSecurityEvents = true;
 
     // Certificate settings
-    private String certificateApiUrl = "https://cert.valleyrealm.qd.je";
+    private String certificateApiUrl = "https://cert.strawberry.dpdns.org";
     private String certificateDocsUrl = "https://docs.valleyrealm.qd.je/certificates";
 
     // Logging
@@ -92,7 +92,7 @@ public class ConfigManager {
         logSecurityEvents = config.getBoolean("security.log-security-events", true);
 
         // Certificate settings
-        certificateApiUrl = config.getString("certificate.api-url", "https://cert.valleyrealm.qd.je");
+        certificateApiUrl = config.getString("certificate.api-url", "https://cert.strawberry.dpdns.org");
         certificateDocsUrl = config.getString("certificate.docs-url", "https://docs.valleyrealm.qd.je/certificates");
 
         // Logging
