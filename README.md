@@ -6,15 +6,15 @@ Opinionated authentication, identity management, and player-data migration for P
 
 ## Features
 
-- **Offline Authentication** — Register and login system for cracked/offline-mode servers with password hashing
-- **VLink Web Interface** — Built-in HTTPS web server for browser-based migration configuration
-- **Certificate Authority** — Integrated with ValleyCert for plugin certificate validation and capability gating
-- **Migration System** — Offline to premium player migration with queue management and progress tracking
-- **LuckPerms Integration** — Automatic permission migration when transferring between identities
-- **Bedrock Support** — Floodgate adapter for Bedrock Edition players with automatic identity prefixing
-- **Identity Management** — Configurable prefixes for premium, bedrock, and offline players
-- **Unsafe Addon Detection** — Scans for potentially dangerous server plugins
-- **SSL Support** — Built-in TLS termination for the web interface, or reverse proxy passthrough
+- **Offline Authentication**: Register and login system for cracked/offline-mode servers with password hashing
+- **VLink Web Interface**: Built-in HTTPS web server for browser-based migration configuration
+- **Certificate Authority**: Integrated with ValleyCert for plugin certificate validation and capability gating
+- **Migration System**: Offline to premium player migration with queue management and progress tracking
+- **LuckPerms Integration**: Automatic permission migration when transferring between identities
+- **Bedrock Support**: Floodgate adapter for Bedrock Edition players with automatic identity prefixing
+- **Identity Management**: Configurable prefixes for premium, bedrock, and offline players
+- **Unsafe Addon Detection**: Scans for potentially dangerous server plugins
+- **SSL Support**: Built-in TLS termination for the web interface, or reverse proxy passthrough
 
 ## Requirements
 
@@ -111,11 +111,11 @@ logging:
 
 ValleyAuth uses a certificate authority (ValleyCert) to gate plugin capabilities. Here's what happens on first startup:
 
-1. **Request sent** — ValleyAuth contacts the ValleyCert API at `certificate.api-url` and requests a core certificate with capabilities: `VLINK`, `IDENTITY_LINK`, `RANK_SHARE`, `MIGRATION_PROVIDER`, `MIGRATION_ACCESS`, `CERTIFICATE_MANAGEMENT`
-2. **Certificate issued** — The CA signs and returns a certificate with a 90-day validity window
-3. **Certificate cached** — Stored locally at `plugins/ValleyAuth/data/core-cert.json` for offline use
-4. **Validation** — On subsequent startups, the cached certificate is loaded. If expired, a renewal is requested. If the CA is reachable, certificates are also validated against the CA in real time
-5. **Offline fallback** — If the CA is unreachable, ValleyAuth runs in offline mode using only cached certificates
+1. **Request sent**: ValleyAuth contacts the ValleyCert API at `certificate.api-url` and requests a core certificate with capabilities: `VLINK`, `IDENTITY_LINK`, `RANK_SHARE`, `MIGRATION_PROVIDER`, `MIGRATION_ACCESS`, `CERTIFICATE_MANAGEMENT`
+2. **Certificate issued**: The CA signs and returns a certificate with a 90-day validity window
+3. **Certificate cached**: Stored locally at `plugins/ValleyAuth/data/core-cert.json` for offline use
+4. **Validation**: On subsequent startups, the cached certificate is loaded. If expired, a renewal is requested. If the CA is reachable, certificates are also validated against the CA in real time
+5. **Offline fallback**: If the CA is unreachable, ValleyAuth runs in offline mode using only cached certificates
 
 The CA status is visible in-game via `/valleyauth status`.
 
@@ -125,14 +125,14 @@ ValleyAuth migrates offline/cracked players to premium (or between identity type
 
 ### Step by step
 
-1. **Start migration** — Run `/migrate` in-game. You'll receive a verification code and a URL
-2. **Open the web interface** — Click the link (or open it manually). Fill in your source server details:
+1. **Start migration**: Run `/migrate` in-game. You'll receive a verification code and a URL
+2. **Open the web interface**: Click the link (or open it manually). Fill in your source server details:
    - Server IP/address
    - Server type (Java or Bedrock)
    - Migration scope (player data, inventories, advancements, statistics)
-3. **Generate verification** — Click "Generate Verification" on the web page
-4. **Verify in-game** — Copy the `/v link <code>` command and run it in Minecraft chat
-5. **Migration queued** — Once verified, the migration is queued. Check progress with `/migrate status`
+3. **Generate verification**: Click "Generate Verification" on the web page
+4. **Verify in-game**: Copy the `/v link <code>` command and run it in Minecraft chat
+5. **Migration queued**: Once verified, the migration is queued. Check progress with `/migrate status`
 
 ### What gets migrated
 
@@ -150,9 +150,9 @@ Up to 5 migrations run simultaneously (configurable via `migration.max-concurren
 
 ValleyAuth automatically detects LuckPerms at startup. When present:
 
-- **Permission migration** — All permission nodes, group assignments, contexts, and expiry data are copied from the old UUID to the new UUID during migration
-- **No configuration needed** — The adapter hooks into LuckPerms via its public API
-- **Graceful fallback** — If LuckPerms isn't installed, permission migration is silently skipped
+- **Permission migration**: All permission nodes, group assignments, contexts, and expiry data are copied from the old UUID to the new UUID during migration
+- **No configuration needed**: The adapter hooks into LuckPerms via its public API
+- **Graceful fallback**: If LuckPerms isn't installed, permission migration is silently skipped
 
 The adapter is listed as a soft dependency, so LuckPerms is never required.
 
