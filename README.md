@@ -1,6 +1,7 @@
 # ValleyAuth
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![API](https://img.shields.io/badge/Paper-1.21%2B-orange)
+![GitHub Tag](https://img.shields.io/github/v/tag/SabeeirSharrma/ValleyAuth)
+ ![License](https://img.shields.io/badge/license-MIT-green) ![API](https://img.shields.io/badge/Paper-1.21%2B-orange)
 
 Opinionated authentication, identity management, and player-data migration for Paper servers.
 
@@ -27,7 +28,7 @@ Opinionated authentication, identity management, and player-data migration for P
 
 ## Installation
 
-1. Download the latest `ValleyAuth.jar` from [Releases](https://github.com/SabeeirSharrma/ValleyAuth/releases)
+1. Download the latest `ValleyAuth-*.jar` from [Releases](https://github.com/SabeeirSharrma/ValleyAuth/releases) or Modrinth
 2. Place the JAR in your server's `plugins/` directory
 3. Start or restart the server
 4. Edit `plugins/ValleyAuth/config.yml` to configure your domain and certificate settings
@@ -35,10 +36,68 @@ Opinionated authentication, identity management, and player-data migration for P
 
 ## Quick Start
 
-1. Set `vlink.domain` in `config.yml` to your server's public domain (e.g., `auth.example.com`)
-2. Start the server. ValleyAuth will attempt to obtain a certificate from the ValleyCert CA on first launch
-3. Players connect and run `/register <password>` to create an account
-4. On subsequent joins, players run `/login <password>` to authenticate
+### 1. Configure your domain
+
+Edit `plugins/ValleyAuth/config.yml`:
+
+```yaml
+vlink:
+  domain: "auth.example.com"  # Your server's public domain
+  show-port: false             # Set true if no reverse proxy (players connect via IP:port)
+  ssl:
+    enabled: false             # Set true if you have a JKS keystore for HTTPS
+```
+
+### 2. Configure the Certificate Authority
+
+By default, ValleyAuth uses the public CA at `https://cert.valleyrealm.qd.je`. This works out of the box for testing, but **it is recommended to host your own ValleyCert API** for production:
+
+- You control your own keys and certificates
+- No dependency on an external service
+- Full revocation control
+
+To use the public CA, leave `certificate.api-url` as-is. To use your own, set:
+
+```yaml
+certificate:
+  api-url: "https://cert.your-domain.com"
+```
+
+See the [ValleyCertAPI documentation](https://github.com/SabeeirSharrma/ValleyCertAPI) for how to deploy your own CA.
+
+### 3. Open the required port
+
+The VLink web interface listens on port `8080` by default (configurable via `migration.web-interface.port`). You need to open this port in your firewall:
+
+```bash
+# UFW
+sudo ufw allow 8080/tcp
+
+# firewalld
+sudo firewall-cmd --add-port=8080/tcp --permanent
+sudo firewall-cmd --reload
+
+# iptables
+sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+```
+
+If you use a reverse proxy (Caddy, Nginx), open the proxy port (443/80) instead and point it at `localhost:8080`.
+
+### 4. Start the server
+
+On first launch, ValleyAuth will:
+
+1. Request a certificate from the ValleyCert API (check logs for success/failure)
+2. Cache the certificate locally for offline use
+3. Start the VLink web server on your configured port
+
+Check the certificate status in-game with `/valleyauth status`.
+
+### 5. Register and login
+
+Players connect and run:
+- `/register <password>` to create an account
+- `/login <password>` on subsequent joins
 
 ## Commands
 
