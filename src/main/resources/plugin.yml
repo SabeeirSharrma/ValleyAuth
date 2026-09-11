@@ -1,0 +1,46 @@
+name: ValleyAuth
+version: '${version}'
+main: com.valleyrealm.valleyauth.ValleyAuth
+api-version: '1.21'
+description: Opinionated authentication, identity, and player-data migration for Paper
+author: SabeeirSharrma
+website: https://github.com/SabeeirSharrma/ValleyAuth
+
+# Floodgate is a soft dependency for Bedrock support
+softdepend:
+  - floodgate
+
+commands:
+  v:
+    description: Valley Auth VLink command
+    usage: /v link <username> <code>
+    permission: valleyauth.vlink
+  valleyauth:
+    description: Valley Auth admin command
+    usage: /valleyauth <subcommand>
+    permission: valleyauth.admin
+  register:
+    description: Register an offline account password
+    usage: /register <password>
+    permission: valleyauth.register
+  login:
+    description: Login to an offline account
+    usage: /login <password>
+    permission: valleyauth.login
+
+permissions:
+  valleyauth.vlink:
+    description: Allows using VLink commands
+    default: true
+  valleyauth.register:
+    description: Allows registering offline accounts
+    default: true
+  valleyauth.login:
+    description: Allows logging into offline accounts
+    default: true
+  valleyauth.admin:
+    description: Allows Valley Auth admin commands
+    default: op
+  valleyauth.migration.status:
+    description: Allows checking migration status
+    default: true
