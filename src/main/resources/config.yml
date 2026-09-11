@@ -1,0 +1,34 @@
+# Valley Auth Configuration
+
+# Identity prefixes
+identity:
+  premium-prefix: ""
+  bedrock-prefix: "."
+  offline-prefix: "-"
+
+# Migration settings
+migration:
+  max-concurrent: 5
+  web-interface:
+    enabled: true
+    port: 8080
+
+# VLink settings
+vlink:
+  code-length: 8
+  expiry-minutes: 30
+
+# Authentication settings
+authentication:
+  login-timeout-seconds: 60
+  max-password-length: 32
+  min-password-length: 6
+
+# Security settings
+security:
+  enforce-certificate-authorization: true
+  log-security-events: true
+
+# Logging
+logging:
+  verbose: false
