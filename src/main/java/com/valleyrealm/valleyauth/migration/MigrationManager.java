@@ -204,6 +204,12 @@ public class MigrationManager {
             MigrationResult result = engine.migrateFromIndex(index, oldUuid, newUuid, job);
             job.setProgress(80);
 
+            // Migrate LuckPerms permissions if available
+            if (plugin.getLuckPermsAdapter() != null && plugin.getLuckPermsAdapter().isAvailable()) {
+                job.setStatusMessage("Migrating LuckPerms permissions...");
+                plugin.getLuckPermsAdapter().migratePermissions(job.getOldUuid(), job.getNewUuid());
+            }
+
             job.setStatusMessage("Invoking registered migration providers...");
             job.setProgress(85);
 

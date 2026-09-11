@@ -24,8 +24,14 @@ public class ConfigManager {
     private int webInterfacePort = 8080;
 
     // VLink settings
+    private String vlinkDomain = "";
+    private boolean vlinkShowPort = false;
     private int vlinkCodeLength = 8;
     private int vlinkExpiryMinutes = 30;
+    private boolean vlinkSslEnabled = false;
+    private String vlinkSslKeystorePath = "keystore.jks";
+    private String vlinkSslKeystorePassword = "";
+    private String vlinkSslKeystoreType = "JKS";
 
     // Authentication settings
     private int loginTimeoutSeconds = 60;
@@ -35,6 +41,10 @@ public class ConfigManager {
     // Security settings
     private boolean enforceCertificateAuthorization = true;
     private boolean logSecurityEvents = true;
+
+    // Certificate settings
+    private String certificateApiUrl = "";
+    private String certificateDocsUrl = "https://docs.valleyrealm.qd.je/certificates";
 
     // Logging
     private boolean verboseLogging = false;
@@ -63,8 +73,14 @@ public class ConfigManager {
         webInterfacePort = config.getInt("migration.web-interface.port", 8080);
 
         // VLink settings
+        vlinkDomain = config.getString("vlink.domain", "");
+        vlinkShowPort = config.getBoolean("vlink.show-port", false);
         vlinkCodeLength = config.getInt("vlink.code-length", 8);
         vlinkExpiryMinutes = config.getInt("vlink.expiry-minutes", 30);
+        vlinkSslEnabled = config.getBoolean("vlink.ssl.enabled", false);
+        vlinkSslKeystorePath = config.getString("vlink.ssl.keystore-path", "keystore.jks");
+        vlinkSslKeystorePassword = config.getString("vlink.ssl.keystore-password", "");
+        vlinkSslKeystoreType = config.getString("vlink.ssl.keystore-type", "JKS");
 
         // Authentication settings
         loginTimeoutSeconds = config.getInt("auth.login-timeout-seconds", 60);
@@ -74,6 +90,10 @@ public class ConfigManager {
         // Security settings
         enforceCertificateAuthorization = config.getBoolean("security.enforce-certificate-authorization", true);
         logSecurityEvents = config.getBoolean("security.log-security-events", true);
+
+        // Certificate settings
+        certificateApiUrl = config.getString("certificate.api-url", "");
+        certificateDocsUrl = config.getString("certificate.docs-url", "https://docs.valleyrealm.qd.je/certificates");
 
         // Logging
         verboseLogging = config.getBoolean("logging.verbose", false);
@@ -93,6 +113,13 @@ public class ConfigManager {
     public int getVlinkCodeLength() { return vlinkCodeLength; }
     public int getVlinkExpiryMinutes() { return vlinkExpiryMinutes; }
 
+    public String getVlinkDomain() { return vlinkDomain; }
+    public boolean isVlinkShowPort() { return vlinkShowPort; }
+    public boolean isVlinkSslEnabled() { return vlinkSslEnabled; }
+    public String getVlinkSslKeystorePath() { return vlinkSslKeystorePath; }
+    public String getVlinkSslKeystorePassword() { return vlinkSslKeystorePassword; }
+    public String getVlinkSslKeystoreType() { return vlinkSslKeystoreType; }
+
     public int getLoginTimeoutSeconds() { return loginTimeoutSeconds; }
     public int getMaxPasswordLength() { return maxPasswordLength; }
     public int getMinPasswordLength() { return minPasswordLength; }
@@ -100,4 +127,7 @@ public class ConfigManager {
     public boolean isEnforceCertificateAuthorization() { return enforceCertificateAuthorization; }
     public boolean isLogSecurityEvents() { return logSecurityEvents; }
     public boolean isVerboseLogging() { return verboseLogging; }
+
+    public String getCertificateApiUrl() { return certificateApiUrl; }
+    public String getCertificateDocsUrl() { return certificateDocsUrl; }
 }

@@ -24,6 +24,7 @@ import java.util.Map;
  * ValleyAuth Core obtains its own certificate from the CA, then validates
  * plugin certificate requests against the CA before granting capabilities.
  */
+// allow: SIZE_OK — single-responsibility CA client (HTTP + cache + lifecycle in one cohesive unit)
 public class ValleyCertClient {
 
     private final ValleyAuth plugin;
@@ -32,7 +33,11 @@ public class ValleyCertClient {
     private final Map<String, PluginCertificate> cachedCertificates = new ConcurrentHashMap<>();
 
     private boolean initialized = false;
+    private volatile boolean caAvailable = false;
     private String apiUrl;
+    private String docsUrl;
+    private static final int MAX_INIT_RETRIES = 3;
+    private static final long RETRY_BASE_DELAY_MS = 2000;
 
     public ValleyCertClient(ValleyAuth plugin) {
         this.plugin = plugin;
@@ -53,11 +58,11 @@ public class ValleyCertClient {
     public void initialize() {
         plugin.getLogger().info("[ValleyCert Client] Initializing...");
 
-        apiUrl = plugin.getConfig().getString("certificate.api-url", "");
+        apiUrl = plugin.getConfigManager().getCertificateApiUrl();
+        docsUrl = plugin.getConfigManager().getCertificateDocsUrl();
 
         if (apiUrl == null || apiUrl.isBlank()) {
-            plugin.getLogger().warning("[ValleyCert Client] No certificate API URL configured.");
-            plugin.getLogger().warning("[ValleyCert Client] Certificate validation will operate in offline/mock mode.");
+            plugin.getLogger().warning("[ValleyCert Client] No certificate API configured. Certificate validation is in offline mode. Set certificate.api-url in config.yml. See " + docsUrl + " for setup guide.");
             initialized = true;
             return;
         }
@@ -81,6 +86,7 @@ public class ValleyCertClient {
                 if (cached != null && isCertificateValid(cached)) {
                     plugin.getLogger().info("[ValleyCert Client] Core certificate loaded: " + cached.getCertificateId());
                     cachedCertificates.put("core", cached);
+                    caAvailable = true;
                     return;
                 }
                 plugin.getLogger().warning("[ValleyCert Client] Core certificate expired or invalid, requesting renewal.");
@@ -89,20 +95,36 @@ public class ValleyCertClient {
             }
         }
 
-        PluginCertificate coreCert = requestCertificateFromCA(
-            "valleyauth-core",
-            List.of("VLINK", "IDENTITY_LINK", "RANK_SHARE", "MIGRATION_PROVIDER", "MIGRATION_ACCESS", "CERTIFICATE_MANAGEMENT"),
-            90
-        );
+        for (int attempt = 1; attempt <= MAX_INIT_RETRIES; attempt++) {
+            PluginCertificate coreCert = requestCertificateFromCA(
+                "valleyauth-core",
+                List.of("VLINK", "IDENTITY_LINK", "RANK_SHARE", "MIGRATION_PROVIDER", "MIGRATION_ACCESS", "CERTIFICATE_MANAGEMENT"),
+                90
+            );
 
-        if (coreCert != null) {
-            cachedCertificates.put("core", coreCert);
-            saveCertificateToFile("core-cert.json", coreCert);
-            plugin.getLogger().info("[ValleyCert Client] Core certificate obtained: " + coreCert.getCertificateId());
-        } else {
-            plugin.getLogger().severe("[ValleyCert Client] Failed to obtain core certificate from CA!");
-            plugin.getLogger().severe("[ValleyCert Client] Protected features may not work correctly.");
+            if (coreCert != null) {
+                cachedCertificates.put("core", coreCert);
+                saveCertificateToFile("core-cert.json", coreCert);
+                caAvailable = true;
+                plugin.getLogger().info("[ValleyCert Client] Core certificate obtained: " + coreCert.getCertificateId());
+                return;
+            }
+
+            if (attempt < MAX_INIT_RETRIES) {
+                long delay = RETRY_BASE_DELAY_MS * attempt;
+                plugin.getLogger().warning("[ValleyCert Client] CA unreachable (attempt " + attempt + "/" + MAX_INIT_RETRIES + "), retrying in " + delay + "ms...");
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
+
+        caAvailable = false;
+        plugin.getLogger().severe("[ValleyCert Client] Failed to obtain core certificate after " + MAX_INIT_RETRIES + " attempts.");
+        plugin.getLogger().severe("[ValleyCert Client] Running in offline mode — cached certs will be used where available.");
     }
 
     /**
@@ -125,18 +147,20 @@ public class ValleyCertClient {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
+                caAvailable = true;
                 JsonObject respBody = gson.fromJson(response.body(), JsonObject.class);
                 if (respBody.get("success").getAsBoolean()) {
                     JsonObject certJson = respBody.getAsJsonObject("certificate");
                     return parsePluginCertificate(certJson);
                 } else {
-                    plugin.getLogger().warning("[ValleyCert Client] CA rejected request: " + respBody.get("message").getAsString());
+                    plugin.getLogger().warning("[ValleyCert Client] CA rejected request: " + respBody.get("message").getAsString() + ". See " + docsUrl);
                 }
             } else {
-                plugin.getLogger().warning("[ValleyCert Client] CA returned HTTP " + response.statusCode());
+                plugin.getLogger().warning("[ValleyCert Client] CA returned HTTP " + response.statusCode() + ". See " + docsUrl);
             }
         } catch (IOException | InterruptedException e) {
-            plugin.getLogger().warning("[ValleyCert Client] CA request failed: " + e.getMessage());
+            caAvailable = false;
+            plugin.getLogger().warning("[ValleyCert Client] CA request failed: " + e.getMessage() + ". See " + docsUrl);
         }
         return null;
     }
@@ -152,7 +176,7 @@ public class ValleyCertClient {
 
         if (apiUrl == null || apiUrl.isBlank()) {
             if (plugin.getConfigManager().isEnforceCertificateAuthorization()) {
-                plugin.getLogger().warning("[ValleyCert Client] No API configured but certificate enforcement is ON. Denying " + pluginId);
+                plugin.getLogger().warning("[ValleyCert Client] No API configured but certificate enforcement is ON. Denying " + pluginId + ". See " + docsUrl);
                 return false;
             }
             return true;
@@ -160,10 +184,25 @@ public class ValleyCertClient {
 
         PluginCertificate cached = cachedCertificates.get(pluginId);
         if (cached != null && isCertificateValid(cached)) {
-            return hasCapability(cached, capability);
+            if (hasCapability(cached, capability)) {
+                if (caAvailable && cached.getCertificateId() != null) {
+                    boolean caValid = validateViaCA(cached.getCertificateId());
+                    if (!caValid) {
+                        plugin.getLogger().warning("[ValleyCert Client] CA says cert " + cached.getCertificateId() + " is invalid — denying " + pluginId);
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
         }
 
-        return validateViaAPI(pluginId, capability);
+        if (caAvailable) {
+            return validateViaAPI(pluginId, capability);
+        }
+
+        plugin.getLogger().warning("[ValleyCert Client] No cached cert for " + pluginId + " and CA is offline — denying (offline mode)");
+        return false;
     }
 
     /**
@@ -180,6 +219,96 @@ public class ValleyCertClient {
             plugin.getLogger().warning("[ValleyCert Client] Validation failed for " + pluginId + ": " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Request a certificate for a plugin — the main entry point for ValleyCert utility.
+     *
+     * Flow: check cache → if valid, return cached → else request from CA → store locally → return.
+     * Returns null on failure (CA unreachable or rejected).
+     */
+    public PluginCertificate requestCertForPlugin(String pluginId, List<String> capabilities) {
+        if (!initialized) {
+            plugin.getLogger().warning("[ValleyCert Client] Not initialized — cannot request cert for " + pluginId);
+            return null;
+        }
+
+        PluginCertificate cached = cachedCertificates.get(pluginId);
+        if (cached != null && isCertificateValid(cached) && hasAllCapabilities(cached, capabilities)) {
+            plugin.getLogger().info("[ValleyCert Client] Returning cached cert for " + pluginId + ": " + cached.getCertificateId());
+            return cached;
+        }
+
+        if (apiUrl == null || apiUrl.isBlank()) {
+            plugin.getLogger().warning("[ValleyCert Client] No API configured — cannot request cert for " + pluginId + ". See " + docsUrl);
+            return null;
+        }
+
+        plugin.getLogger().info("[ValleyCert Client] Requesting cert from CA for " + pluginId + "...");
+        PluginCertificate cert = requestCertificateFromCA(pluginId, capabilities, 90);
+
+        if (cert != null) {
+            cachedCertificates.put(pluginId, cert);
+            saveCertificateToFile(pluginId + "-cert.json", cert);
+            plugin.getLogger().info("[ValleyCert Client] Certificate obtained and stored for " + pluginId + ": " + cert.getCertificateId());
+            return cert;
+        }
+
+        plugin.getLogger().warning("[ValleyCert Client] Failed to obtain cert for " + pluginId + " from CA.");
+        return null;
+    }
+
+    /**
+     * Validate a certificate by its ID against the CA's /api/certificate/validate/:id endpoint.
+     * Returns true if the CA confirms the certificate is valid.
+     */
+    public boolean validateViaCA(String certificateId) {
+        if (!caAvailable || apiUrl == null || apiUrl.isBlank()) {
+            return false;
+        }
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(apiUrl + "/api/certificate/validate/" + certificateId))
+                .header("Content-Type", "application/json")
+                .GET()
+                .timeout(java.time.Duration.ofSeconds(10))
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonObject respBody = gson.fromJson(response.body(), JsonObject.class);
+                boolean valid = respBody.has("valid") && respBody.get("valid").getAsBoolean();
+                plugin.getLogger().info("[ValleyCert Client] CA validation for " + certificateId + ": " + (valid ? "VALID" : "INVALID"));
+                return valid;
+            } else {
+                plugin.getLogger().warning("[ValleyCert Client] CA validate returned HTTP " + response.statusCode() + " for " + certificateId);
+                return false;
+            }
+        } catch (IOException | InterruptedException e) {
+            plugin.getLogger().warning("[ValleyCert Client] CA validate request failed: " + e.getMessage());
+            caAvailable = false;
+            return false;
+        }
+    }
+
+    /**
+     * Returns the core certificate if available, null otherwise.
+     */
+    public PluginCertificate getCoreCertificate() {
+        return cachedCertificates.get("core");
+    }
+
+    /**
+     * Returns true if the CA was reachable on the last check.
+     */
+    public boolean isCaAvailable() {
+        return caAvailable;
+    }
+
+    public PluginCertificate getCachedCertificate(String pluginId) {
+        return cachedCertificates.get(pluginId);
     }
 
     /**
@@ -214,6 +343,13 @@ public class ValleyCertClient {
         return cert.getCapabilities() != null &&
                cert.getCapabilities().stream()
                    .anyMatch(c -> c.equalsIgnoreCase(capability));
+    }
+
+    private boolean hasAllCapabilities(PluginCertificate cert, List<String> required) {
+        if (cert.getCapabilities() == null || required == null) return false;
+        return required.stream().allMatch(req ->
+            cert.getCapabilities().stream().anyMatch(c -> c.equalsIgnoreCase(req))
+        );
     }
 
     private PluginCertificate parsePluginCertificate(JsonObject certJson) {

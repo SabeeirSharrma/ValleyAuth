@@ -15,8 +15,19 @@ migration:
 
 # VLink settings
 vlink:
+  domain: ""
+  # Show port in URLs sent to players (e.g. https://auth.example.com:25565/migrate/...)
+  # Set to true if players connect directly to the server IP:port (no reverse proxy).
+  # Set to false when using a reverse proxy (Caddy, Nginx, etc.) that handles the port,
+  # so URLs appear clean: https://auth.example.com/migrate/...
+  show-port: false
   code-length: 8
   expiry-minutes: 30
+  ssl:
+    enabled: false
+    keystore-path: "keystore.jks"
+    keystore-password: ""
+    keystore-type: "JKS"
 
 # Authentication settings
 authentication:
@@ -28,6 +39,14 @@ authentication:
 security:
   enforce-certificate-authorization: true
   log-security-events: true
+
+# Certificate Authority configuration
+# The ValleyCert API URL where plugins request certificates
+# Example: https://cert.valleyrealm.qd.je
+certificate:
+  api-url: ""
+  # Documentation URL shown in security warnings
+  docs-url: "https://docs.valleyrealm.qd.je/certificates"
 
 # Logging
 logging:

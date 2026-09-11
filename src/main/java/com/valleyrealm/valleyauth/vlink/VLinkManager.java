@@ -8,6 +8,7 @@ import com.valleyrealm.valleyauth.identity.IdentityType;
 import com.valleyrealm.valleyauth.migration.MigrationType;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,6 +153,28 @@ public class VLinkManager {
     }
 
     /**
+     * Get a session by its short verification code.
+     *
+     * @param code The VLink code (e.g. "ABCD-EFGH")
+     * @return The session, or null if no active session matches
+     */
+    public VLinkSession getSessionByCode(String code) {
+        String sessionId = codeToSession.get(code);
+        if (sessionId == null) {
+            return null;
+        }
+        return sessions.get(sessionId);
+    }
+
+    /**
+     * Get all active sessions.
+     * Returned map is a live view — callers should not modify it.
+     */
+    public Map<String, VLinkSession> getSessions() {
+        return sessions;
+    }
+
+    /**
      * Get pending session for a source UUID.
      */
     public VLinkSession getPendingSessionForSource(UUID sourceUuid) {
@@ -255,6 +278,10 @@ public class VLinkManager {
         private Identity destinationIdentity;
         private String failureReason;
 
+        private String serverAddress;
+        private String serverType;
+        private List<String> migrationScope;
+
         public VLinkSession(String sessionId, String code, Identity sourceIdentity, 
                            IdentityType destinationType, String pluginId, int expiryMinutes) {
             this.sessionId = sessionId;
@@ -292,6 +319,15 @@ public class VLinkManager {
         public VLinkState getState() { return state; }
         public Identity getDestinationIdentity() { return destinationIdentity; }
         public String getFailureReason() { return failureReason; }
+
+        public void setServerAddress(String serverAddress) { this.serverAddress = serverAddress; }
+        public String getServerAddress() { return serverAddress; }
+
+        public void setServerType(String serverType) { this.serverType = serverType; }
+        public String getServerType() { return serverType; }
+
+        public void setMigrationScope(List<String> migrationScope) { this.migrationScope = migrationScope; }
+        public List<String> getMigrationScope() { return migrationScope; }
     }
 
     public static class VLinkResult {

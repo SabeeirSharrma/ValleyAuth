@@ -7,6 +7,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -56,6 +57,18 @@ public class CertificateValidator {
         }
 
         if (pluginId.equals("valleyauth-core") && CORE_CAPABILITIES.contains(requiredCapability)) {
+            return true;
+        }
+
+        PluginCertificate cert = plugin.getValleyCertClient().getCachedCertificate(pluginId);
+        if (cert != null) {
+            if (!validateCertificate(cert, requiredCapability)) {
+                return false;
+            }
+            if (plugin.getValleyCertClient().isCaAvailable() && cert.getCertificateId() != null) {
+                return plugin.getValleyCertClient().validateViaCA(cert.getCertificateId());
+            }
+            plugin.getLogger().info("[ValleyAuth Cert] CA offline — trusting cached cert for " + pluginId);
             return true;
         }
 
@@ -119,6 +132,39 @@ public class CertificateValidator {
     public boolean isRevoked(PluginCertificate cert) {
         if (cert == null) return true;
         return cert.getEncryptedRevocationTimestamp() != null;
+    }
+
+    public Map<String, String> getCertificateStatus() {
+        ValleyCertClient client = plugin.getValleyCertClient();
+        PluginCertificate coreCert = client.getCoreCertificate();
+
+        String caStatus = client.isCaAvailable() ? "Online" : "Offline";
+
+        if (coreCert == null) {
+            return Map.of(
+                "coreCert", "None",
+                "caStatus", caStatus,
+                "apiUrl", client.getApiUrl() != null ? client.getApiUrl() : "Not configured"
+            );
+        }
+
+        String certStatus;
+        if (isExpired(coreCert)) {
+            certStatus = "Expired";
+        } else if (isRevoked(coreCert)) {
+            certStatus = "Revoked";
+        } else {
+            certStatus = "Valid";
+        }
+
+        return Map.of(
+            "coreCert", coreCert.getCertificateId(),
+            "certStatus", certStatus,
+            "pluginId", coreCert.getPluginId() != null ? coreCert.getPluginId() : "N/A",
+            "expires", coreCert.getExpirationDate() != null ? coreCert.getExpirationDate().toString() : "N/A",
+            "caStatus", caStatus,
+            "apiUrl", client.getApiUrl() != null ? client.getApiUrl() : "Not configured"
+        );
     }
 
     /**

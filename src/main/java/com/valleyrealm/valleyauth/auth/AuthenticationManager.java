@@ -27,9 +27,6 @@ public class AuthenticationManager {
     // Tracks authentication state per player UUID
     private final Map<UUID, AuthState> authStateMap = new ConcurrentHashMap<>();
 
-    // Offline account passwords (UUID -> hashed password)
-    private final Map<UUID, String> passwordStore = new ConcurrentHashMap<>();
-
     // Pending registrations (UUID -> registration info)
     private final Map<UUID, RegistrationInfo> pendingRegistrations = new ConcurrentHashMap<>();
 
@@ -74,7 +71,7 @@ public class AuthenticationManager {
         }
 
         // Check if account exists
-        if (passwordStore.containsKey(playerUuid)) {
+        if (plugin.getStorageManager().hasPassword(playerUuid.toString())) {
             // Account exists - needs /login
             authStateMap.put(playerUuid, AuthState.REQUIRES_LOGIN);
             return AuthResult.requiresLogin(
@@ -102,7 +99,7 @@ public class AuthenticationManager {
         }
 
         // Check if already registered
-        if (passwordStore.containsKey(playerUuid)) {
+        if (plugin.getStorageManager().hasPassword(playerUuid.toString())) {
             return AuthResult.denied("Account already registered. Use /login instead.");
         }
 
@@ -114,7 +111,7 @@ public class AuthenticationManager {
 
         // Store password (in production, use proper hashing)
         String hashedPassword = hashPassword(password);
-        passwordStore.put(playerUuid, hashedPassword);
+        plugin.getStorageManager().storePasswordHash(playerUuid.toString(), hashedPassword);
         
         // Mark as authenticated
         authStateMap.put(playerUuid, AuthState.AUTHENTICATED);
@@ -129,7 +126,7 @@ public class AuthenticationManager {
      */
     public AuthResult handleLogin(UUID playerUuid, String password) {
         // Check if account exists
-        if (!passwordStore.containsKey(playerUuid)) {
+        if (!plugin.getStorageManager().hasPassword(playerUuid.toString())) {
             return AuthResult.denied("Account not found. Use /register first.");
         }
 
@@ -140,7 +137,7 @@ public class AuthenticationManager {
         }
 
         // Verify password
-        String storedHash = passwordStore.get(playerUuid);
+        String storedHash = plugin.getStorageManager().getPasswordHash(playerUuid.toString());
         if (!verifyPassword(password, storedHash)) {
             return AuthResult.denied("Incorrect password.");
         }

@@ -2,14 +2,20 @@ package com.valleyrealm.valleyauth;
 
 import com.valleyrealm.valleyauth.auth.AuthenticationManager;
 import com.valleyrealm.valleyauth.auth.FloodgateAdapter;
+import com.valleyrealm.valleyauth.command.AuthCommandExecutor;
+import com.valleyrealm.valleyauth.command.MigrateCommandExecutor;
+import com.valleyrealm.valleyauth.command.ValleyAuthCommandExecutor;
 import com.valleyrealm.valleyauth.listener.PlayerConnectionListener;
 import com.valleyrealm.valleyauth.cert.ValleyCertClient;
+import com.valleyrealm.valleyauth.cert.CertificateValidator;
 import com.valleyrealm.valleyauth.config.ConfigManager;
 import com.valleyrealm.valleyauth.identity.IdentityManager;
+import com.valleyrealm.valleyauth.luckperms.LuckPermsAdapter;
 import com.valleyrealm.valleyauth.migration.MigrationManager;
 import com.valleyrealm.valleyauth.security.UnsafeAddonManager;
 import com.valleyrealm.valleyauth.storage.StorageManager;
 import com.valleyrealm.valleyauth.vlink.VLinkManager;
+import com.valleyrealm.valleyauth.vlink.VLinkWebServer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -33,8 +39,11 @@ public class ValleyAuth extends JavaPlugin {
     private MigrationManager migrationManager;
     private StorageManager storageManager;
     private ValleyCertClient valleyCertClient;
+    private CertificateValidator certificateValidator;
     private FloodgateAdapter floodgateAdapter;
+    private LuckPermsAdapter luckPermsAdapter;
     private UnsafeAddonManager unsafeAddonManager;
+    private VLinkWebServer webServer;
 
     @Override
     public void onEnable() {
@@ -50,11 +59,25 @@ public class ValleyAuth extends JavaPlugin {
         storageManager.initialize();
         
         identityManager = new IdentityManager(this);
+
+        // Phase 2: LuckPerms integration
+        getLogger().info("[Valley Auth] Initializing LuckPerms adapter...");
+        luckPermsAdapter = new LuckPermsAdapter(this);
+        luckPermsAdapter.initialize();
         
         // Phase 2: ValleyCert initialization
         getLogger().info("[Valley Auth] Initializing certificate system...");
         valleyCertClient = new ValleyCertClient(this);
         valleyCertClient.initialize();
+
+        certificateValidator = new CertificateValidator(this);
+
+        if (valleyCertClient.getCoreCertificate() != null) {
+            String certId = valleyCertClient.getCoreCertificate().getCertificateId();
+            getLogger().info("[Valley Auth] Core certificate: " + certId + " (CA: " + (valleyCertClient.isCaAvailable() ? "online" : "offline") + ")");
+        } else {
+            getLogger().warning("[Valley Auth] No core certificate available — running in offline mode.");
+        }
         
         // Phase 3: Core services (require valid cert)
         getLogger().info("[Valley Auth] Initializing authentication...");
@@ -62,6 +85,16 @@ public class ValleyAuth extends JavaPlugin {
         
         getLogger().info("[Valley Auth] Initializing VLink...");
         vlinkManager = new VLinkManager(this);
+
+        if (configManager.isWebInterfaceEnabled()) {
+            try {
+                webServer = new VLinkWebServer(this);
+                webServer.start();
+                getLogger().info("[Valley Auth] Web interface started on port " + configManager.getWebInterfacePort());
+            } catch (Exception e) {
+                getLogger().warning("[Valley Auth] Failed to start web interface: " + e.getMessage());
+            }
+        }
         
         getLogger().info("[Valley Auth] Initializing migration system...");
         migrationManager = new MigrationManager(this);
@@ -89,7 +122,15 @@ public class ValleyAuth extends JavaPlugin {
         if (migrationManager != null) {
             migrationManager.shutdown();
         }
+
+        if (webServer != null) {
+            webServer.close();
+        }
         
+        if (luckPermsAdapter != null) {
+            luckPermsAdapter.shutdown();
+        }
+
         if (storageManager != null) {
             storageManager.shutdown();
         }
@@ -98,7 +139,18 @@ public class ValleyAuth extends JavaPlugin {
     }
 
     private void registerCommands() {
-        // Commands will be registered here
+        AuthCommandExecutor authCmd = new AuthCommandExecutor(this);
+        getCommand("register").setExecutor(authCmd);
+        getCommand("login").setExecutor(authCmd);
+        getCommand("v").setExecutor(authCmd);
+
+        ValleyAuthCommandExecutor vaCmd = new ValleyAuthCommandExecutor(this);
+        getCommand("valleyauth").setExecutor(vaCmd);
+        getCommand("valleyauth").setTabCompleter(vaCmd);
+
+        MigrateCommandExecutor migrateCmd = new MigrateCommandExecutor(this);
+        getCommand("migrate").setExecutor(migrateCmd);
+        getCommand("migrate").setTabCompleter(migrateCmd);
     }
 
     private void registerListeners() {
@@ -118,6 +170,9 @@ public class ValleyAuth extends JavaPlugin {
     public MigrationManager getMigrationManager() { return migrationManager; }
     public StorageManager getStorageManager() { return storageManager; }
     public ValleyCertClient getValleyCertClient() { return valleyCertClient; }
+    public CertificateValidator getCertificateValidator() { return certificateValidator; }
     public FloodgateAdapter getFloodgateAdapter() { return floodgateAdapter; }
+    public LuckPermsAdapter getLuckPermsAdapter() { return luckPermsAdapter; }
     public UnsafeAddonManager getUnsafeAddonManager() { return unsafeAddonManager; }
+    public VLinkWebServer getWebServer() { return webServer; }
 }

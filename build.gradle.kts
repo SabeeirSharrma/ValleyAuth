@@ -15,11 +15,13 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://repo.opencollab.dev/maven-releases/")
     maven("https://repo.opencollab.dev/maven-snapshots/")
+    maven("https://repo.luckperms.net/maven2/")
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:${property("paperVersion")}")
     compileOnly("org.geysermc.floodgate:api:2.2.3-SNAPSHOT")
+    compileOnly("net.luckperms:api:5.4")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
