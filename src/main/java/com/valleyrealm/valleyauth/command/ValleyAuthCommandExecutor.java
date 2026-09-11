@@ -2,6 +2,7 @@ package com.valleyrealm.valleyauth.command;
 
 import com.valleyrealm.valleyauth.ValleyAuth;
 import com.valleyrealm.valleyauth.cert.CertificateValidator;
+import com.valleyrealm.valleyauth.cert.CertificateEnforcer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -68,6 +69,19 @@ public class ValleyAuthCommandExecutor implements CommandExecutor, TabCompleter 
             sender.sendMessage("§e[Valley Auth] CA: §f" + caStatus);
         } else {
             sender.sendMessage("§e[Valley Auth] Certificate system: §cNot initialized");
+        }
+
+        CertificateEnforcer enforcer = plugin.getCertificateEnforcer();
+        if (enforcer != null) {
+            int unsafeCount = enforcer.getUnsafePluginCount();
+            if (unsafeCount > 0) {
+                sender.sendMessage("§c[Valley Auth] Unsafe plugins: §f" + unsafeCount);
+                for (String name : enforcer.getUnsafePlugins()) {
+                    sender.sendMessage("§c - " + name);
+                }
+            } else {
+                sender.sendMessage("§a[Valley Auth] No plugins flagged UNSAFE.");
+            }
         }
     }
 

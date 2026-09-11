@@ -8,6 +8,7 @@ import com.valleyrealm.valleyauth.command.ValleyAuthCommandExecutor;
 import com.valleyrealm.valleyauth.listener.PlayerConnectionListener;
 import com.valleyrealm.valleyauth.cert.ValleyCertClient;
 import com.valleyrealm.valleyauth.cert.CertificateValidator;
+import com.valleyrealm.valleyauth.cert.CertificateEnforcer;
 import com.valleyrealm.valleyauth.config.ConfigManager;
 import com.valleyrealm.valleyauth.identity.IdentityManager;
 import com.valleyrealm.valleyauth.luckperms.LuckPermsAdapter;
@@ -40,6 +41,7 @@ public class ValleyAuth extends JavaPlugin {
     private StorageManager storageManager;
     private ValleyCertClient valleyCertClient;
     private CertificateValidator certificateValidator;
+    private CertificateEnforcer certificateEnforcer;
     private FloodgateAdapter floodgateAdapter;
     private LuckPermsAdapter luckPermsAdapter;
     private UnsafeAddonManager unsafeAddonManager;
@@ -71,6 +73,7 @@ public class ValleyAuth extends JavaPlugin {
         valleyCertClient.initialize();
 
         certificateValidator = new CertificateValidator(this);
+        certificateEnforcer = new CertificateEnforcer(this);
 
         if (valleyCertClient.getCoreCertificate() != null) {
             String certId = valleyCertClient.getCoreCertificate().getCertificateId();
@@ -134,6 +137,10 @@ public class ValleyAuth extends JavaPlugin {
         if (storageManager != null) {
             storageManager.shutdown();
         }
+
+        if (certificateEnforcer != null) {
+            certificateEnforcer.saveUnsafePlugins();
+        }
         
         getLogger().info("[Valley Auth] Disabled.");
     }
@@ -171,6 +178,7 @@ public class ValleyAuth extends JavaPlugin {
     public StorageManager getStorageManager() { return storageManager; }
     public ValleyCertClient getValleyCertClient() { return valleyCertClient; }
     public CertificateValidator getCertificateValidator() { return certificateValidator; }
+    public CertificateEnforcer getCertificateEnforcer() { return certificateEnforcer; }
     public FloodgateAdapter getFloodgateAdapter() { return floodgateAdapter; }
     public LuckPermsAdapter getLuckPermsAdapter() { return luckPermsAdapter; }
     public UnsafeAddonManager getUnsafeAddonManager() { return unsafeAddonManager; }

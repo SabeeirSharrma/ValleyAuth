@@ -48,6 +48,10 @@ public class PlayerConnectionListener implements Listener {
 
         plugin.getUnsafeAddonManager().notifyOperatorsOnJoin(player);
 
+        if (plugin.getCertificateEnforcer() != null) {
+            plugin.getCertificateEnforcer().notifyOperatorsOnJoin(player);
+        }
+
         try {
             IdentityType identityType = floodgateAdapter.resolveIdentityType(playerUuid, isOnlineMode);
             Identity identity = getOrCreateIdentity(username, playerUuid, identityType);

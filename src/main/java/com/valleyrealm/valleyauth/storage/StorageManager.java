@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,6 +34,7 @@ public class StorageManager {
 
     private final Map<String, String> offlineUuids = new ConcurrentHashMap<>();
     private final Map<String, String> passwordHashes = new ConcurrentHashMap<>();
+    private Set<String> unsafePlugins = ConcurrentHashMap.newKeySet();
 
     public StorageManager(ValleyAuth plugin) {
         this.plugin = plugin;
@@ -84,6 +86,7 @@ public class StorageManager {
     public void shutdown() {
         saveOfflineUuids();
         savePasswordHashes();
+        saveUnsafePlugins();
         plugin.getLogger().info("[Valley Auth] Storage saved.");
     }
 
@@ -97,6 +100,7 @@ public class StorageManager {
 
     private Path offlineUuidsFile() { return dataFolder.resolve("data").resolve("offline-uuids.json"); }
     private Path passwordsFile() { return dataFolder.resolve("data").resolve("passwords.json"); }
+    private Path unsafePluginsFile() { return dataFolder.resolve("data").resolve("unsafe-plugins.json"); }
 
     private void loadOfflineUuids() {
         plugin.getLogger().info("[Valley Auth] Loading offline UUID mappings...");
@@ -140,6 +144,38 @@ public class StorageManager {
         } catch (IOException e) {
             plugin.getLogger().warning("[Valley Auth] Failed to save password hashes: " + e.getMessage());
         }
+    }
+
+    public Set<String> loadUnsafePlugins() {
+        plugin.getLogger().info("[Valley Auth] Loading unsafe plugin statuses...");
+        Path file = unsafePluginsFile();
+        if (!Files.exists(file)) return unsafePlugins;
+
+        try {
+            String json = Files.readString(file);
+            java.lang.reflect.Type setType = new com.google.gson.reflect.TypeToken<Set<String>>() {}.getType();
+            Set<String> loaded = gson.fromJson(json, setType);
+            if (loaded != null) {
+                unsafePlugins.addAll(loaded);
+            }
+            plugin.getLogger().info("[Valley Auth] Loaded " + unsafePlugins.size() + " unsafe plugin(s).");
+        } catch (IOException e) {
+            plugin.getLogger().warning("[Valley Auth] Failed to load unsafe plugins: " + e.getMessage());
+        }
+        return unsafePlugins;
+    }
+
+    public void saveUnsafePlugins() {
+        try {
+            Files.createDirectories(unsafePluginsFile().getParent());
+            Files.writeString(unsafePluginsFile(), gson.toJson(unsafePlugins));
+        } catch (IOException e) {
+            plugin.getLogger().warning("[Valley Auth] Failed to save unsafe plugins: " + e.getMessage());
+        }
+    }
+
+    public Set<String> getUnsafePlugins() {
+        return unsafePlugins;
     }
 
     @FunctionalInterface
