@@ -44,7 +44,7 @@ security:
 # The ValleyCert API URL where plugins request certificates
 # Example: https://cert.valleyrealm.qd.je
 certificate:
-  api-url: ""
+  api-url: "https://cert.valleyrealm.qd.je"
   # Documentation URL shown in security warnings
   docs-url: "https://docs.valleyrealm.qd.je/certificates"
 
