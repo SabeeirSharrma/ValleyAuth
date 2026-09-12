@@ -2,23 +2,23 @@ package com.valleyrealm.valleyauth.auth;
 
 import com.valleyrealm.valleyauth.ValleyAuth;
 import com.valleyrealm.valleyauth.identity.IdentityType;
+import com.valleyrealm.valleyauth.mojang.MojangApiClient;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
 import java.util.logging.Level;
 
 /**
- * Adapter for Floodgate Bedrock integration.
+ * Adapter for Floodgate Bedrock integration and Mojang Premium verification.
  * 
- * Floodgate is the core dependency for Bedrock support.
- * This adapter handles:
- * - Detecting Floodgate presence
- * - Identifying Bedrock players
- * - Extracting Floodgate UUIDs
- * - Mapping Bedrock identities
+ * Identity resolution order:
+ * 1. Floodgate check → Bedrock (auto-auth)
+ * 2. Server online-mode → Premium (server already verified via Mojang session)
+ * 3. Mojang API lookup → Premium (username exists on Mojang, auto-auth)
+ * 4. Otherwise → Offline (requires password)
  * 
- * Uses reflection to avoid hard compile-time dependency.
  * Floodgate is a soft dependency - plugin works without it.
+ * Mojang API is used for Premium verification in offline-mode.
  */
 public class FloodgateAdapter {
 
@@ -155,19 +155,37 @@ public class FloodgateAdapter {
 
     /**
      * Determine identity type from player connection.
+     * 
+     * Resolution order:
+     * 1. Floodgate check → Bedrock (auto-auth, only if Floodgate detected)
+     * 2. Server online-mode → Premium (server already verified via Mojang session)
+     * 3. Mojang API lookup → Premium (username exists on Mojang, auto-auth)
+     * 4. Otherwise → Offline (requires /register or /login, custom UUID, -{username})
      */
-    public IdentityType resolveIdentityType(UUID playerUuid, boolean isOnlineMode) {
-        // Check Floodgate first
+    public IdentityType resolveIdentityType(UUID playerUuid, String username, boolean isOnlineMode) {
         if (floodgateAvailable && isBedrockPlayer(playerUuid)) {
             return IdentityType.BEDROCK;
         }
 
-        // Premium if online mode
         if (isOnlineMode) {
             return IdentityType.PREMIUM;
         }
 
-        // Otherwise offline
+        MojangApiClient mojangClient = plugin.getMojangApiClient();
+        if (mojangClient != null && mojangClient.isEnabled() && username != null) {
+            if (mojangClient.isPremiumUsername(username)) {
+                plugin.getLogger().info("[Valley Auth] Mojang verified: '" + username + "' is a Premium account — auto-auth.");
+                return IdentityType.PREMIUM;
+            }
+        }
+
         return IdentityType.OFFLINE;
+    }
+
+    /**
+     * Legacy overload for backward compatibility.
+     */
+    public IdentityType resolveIdentityType(UUID playerUuid, boolean isOnlineMode) {
+        return resolveIdentityType(playerUuid, null, isOnlineMode);
     }
 }

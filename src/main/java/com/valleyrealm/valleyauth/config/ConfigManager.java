@@ -46,6 +46,9 @@ public class ConfigManager {
     private String certificateApiUrl = "https://cert.strawberry.dpdns.org";
     private String certificateDocsUrl = "https://docs.valleyrealm.qd.je/certificates";
 
+    // Mojang API settings
+    private boolean mojangApiEnabled = true;
+
     // Logging
     private boolean verboseLogging = false;
 
@@ -95,6 +98,9 @@ public class ConfigManager {
         certificateApiUrl = config.getString("certificate.api-url", "https://cert.strawberry.dpdns.org");
         certificateDocsUrl = config.getString("certificate.docs-url", "https://docs.valleyrealm.qd.je/certificates");
 
+        // Mojang API settings
+        mojangApiEnabled = config.getBoolean("mojang-api.enabled", true);
+
         // Logging
         verboseLogging = config.getBoolean("logging.verbose", false);
 
@@ -127,6 +133,8 @@ public class ConfigManager {
     public boolean isEnforceCertificateAuthorization() { return enforceCertificateAuthorization; }
     public boolean isLogSecurityEvents() { return logSecurityEvents; }
     public boolean isVerboseLogging() { return verboseLogging; }
+
+    public boolean isMojangApiEnabled() { return mojangApiEnabled; }
 
     public String getCertificateApiUrl() { return certificateApiUrl; }
     public String getCertificateDocsUrl() { return certificateDocsUrl; }

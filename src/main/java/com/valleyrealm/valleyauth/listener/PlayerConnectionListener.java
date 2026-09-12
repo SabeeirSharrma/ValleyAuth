@@ -3,6 +3,7 @@ package com.valleyrealm.valleyauth.listener;
 import com.valleyrealm.valleyauth.ValleyAuth;
 import com.valleyrealm.valleyauth.auth.AuthenticationManager;
 import com.valleyrealm.valleyauth.auth.FloodgateAdapter;
+import com.valleyrealm.valleyauth.auth.MojangSessionVerifier;
 import com.valleyrealm.valleyauth.identity.Identity;
 import com.valleyrealm.valleyauth.identity.IdentityManager;
 import com.valleyrealm.valleyauth.identity.IdentityType;
@@ -53,15 +54,34 @@ public class PlayerConnectionListener implements Listener {
         }
 
         try {
-            IdentityType identityType = floodgateAdapter.resolveIdentityType(playerUuid, isOnlineMode);
-            Identity identity = getOrCreateIdentity(username, playerUuid, identityType);
+            MojangSessionVerifier sessionVerifier = plugin.getMojangSessionVerifier();
+            IdentityType identityType;
+            UUID resolvedUuid = playerUuid;
 
-            AuthenticationManager.AuthResult authResult = authManager.onPlayerJoin(username, playerUuid, identityType);
+            if (sessionVerifier != null && sessionVerifier.isEnabled() && !isOnlineMode) {
+                if (sessionVerifier.isSessionVerified(playerUuid)) {
+                    identityType = IdentityType.PREMIUM;
+                    resolvedUuid = sessionVerifier.getVerifiedMojangUuid(playerUuid);
+                    plugin.getLogger().info("[Valley Auth] " + username + " verified via Mojang session — Premium.");
+                } else {
+                    identityType = IdentityType.OFFLINE;
+                    plugin.getLogger().info("[Valley Auth] " + username + " failed Mojang session — Offline.");
+                }
+            } else {
+                identityType = floodgateAdapter.resolveIdentityType(playerUuid, username, isOnlineMode);
+            }
+
+            Identity identity = getOrCreateIdentity(username, resolvedUuid, identityType);
+            AuthenticationManager.AuthResult authResult = authManager.onPlayerJoin(username, resolvedUuid, identityType);
 
             joinPositions.put(playerUuid, player.getLocation());
 
             if (authResult.isSuccess()) {
-                player.sendMessage("§a[Valley Auth] " + authResult.getMessage());
+                if (identityType == IdentityType.PREMIUM && !isOnlineMode) {
+                    player.sendMessage("§a[Valley Auth] Premium account verified via Mojang — automatic authentication.");
+                } else {
+                    player.sendMessage("§a[Valley Auth] " + authResult.getMessage());
+                }
                 cancelAuthTimer(playerUuid);
             } else if (authResult.isRequiresRegistration()) {
                 player.sendMessage("§e[Valley Auth] " + authResult.getMessage());
@@ -88,6 +108,11 @@ public class PlayerConnectionListener implements Listener {
         authManager.onPlayerDisconnect(playerUuid);
         cancelAuthTimer(playerUuid);
         joinPositions.remove(playerUuid);
+
+        MojangSessionVerifier sessionVerifier = plugin.getMojangSessionVerifier();
+        if (sessionVerifier != null) {
+            sessionVerifier.cleanupSession(playerUuid);
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

@@ -2,6 +2,7 @@ package com.valleyrealm.valleyauth;
 
 import com.valleyrealm.valleyauth.auth.AuthenticationManager;
 import com.valleyrealm.valleyauth.auth.FloodgateAdapter;
+import com.valleyrealm.valleyauth.auth.MojangSessionVerifier;
 import com.valleyrealm.valleyauth.command.AuthCommandExecutor;
 import com.valleyrealm.valleyauth.command.MigrateCommandExecutor;
 import com.valleyrealm.valleyauth.command.ValleyAuthCommandExecutor;
@@ -13,6 +14,7 @@ import com.valleyrealm.valleyauth.config.ConfigManager;
 import com.valleyrealm.valleyauth.identity.IdentityManager;
 import com.valleyrealm.valleyauth.luckperms.LuckPermsAdapter;
 import com.valleyrealm.valleyauth.migration.MigrationManager;
+import com.valleyrealm.valleyauth.mojang.MojangApiClient;
 import com.valleyrealm.valleyauth.security.UnsafeAddonManager;
 import com.valleyrealm.valleyauth.storage.StorageManager;
 import com.valleyrealm.valleyauth.vlink.VLinkManager;
@@ -43,6 +45,8 @@ public class ValleyAuth extends JavaPlugin {
     private CertificateValidator certificateValidator;
     private CertificateEnforcer certificateEnforcer;
     private FloodgateAdapter floodgateAdapter;
+    private MojangApiClient mojangApiClient;
+    private MojangSessionVerifier mojangSessionVerifier;
     private LuckPermsAdapter luckPermsAdapter;
     private UnsafeAddonManager unsafeAddonManager;
     private VLinkWebServer webServer;
@@ -110,6 +114,28 @@ public class ValleyAuth extends JavaPlugin {
         getLogger().info("[Valley Auth] Initializing Floodgate adapter...");
         floodgateAdapter = new FloodgateAdapter(this);
 
+        // Phase 4.5: Mojang API client (for Premium verification in offline mode)
+        boolean isOnlineMode = getServer().getOnlineMode();
+        boolean mojangApiEnabled = configManager.isMojangApiEnabled() && !isOnlineMode;
+        mojangApiClient = new MojangApiClient(this, mojangApiEnabled);
+
+        getLogger().info("[Valley Auth] Server online-mode: " + isOnlineMode);
+        if (!isOnlineMode && mojangApiEnabled) {
+            getLogger().info("[Valley Auth] Mojang API enabled — Premium players will be verified via Mojang.");
+            
+            // Phase 4.6: Mojang session verifier (requires ProtocolLib)
+            if (getServer().getPluginManager().getPlugin("ProtocolLib") != null) {
+                getLogger().info("[Valley Auth] ProtocolLib detected — enabling Mojang session verification.");
+                mojangSessionVerifier = new MojangSessionVerifier(this);
+                mojangSessionVerifier.initialize();
+            } else {
+                getLogger().warning("[Valley Auth] ProtocolLib not found — Mojang session verification disabled.");
+                getLogger().warning("[Valley Auth] Install ProtocolLib for automatic Premium player verification in offline-mode.");
+            }
+        } else if (!isOnlineMode) {
+            getLogger().warning("[Valley Auth] Mojang API disabled — all Java players require password authentication.");
+        }
+
         // Phase 5: Security systems
         getLogger().info("[Valley Auth] Initializing unsafe addon detection...");
         unsafeAddonManager = new UnsafeAddonManager(this);
@@ -134,6 +160,14 @@ public class ValleyAuth extends JavaPlugin {
             webServer.close();
         }
         
+        if (mojangApiClient != null) {
+            mojangApiClient.shutdown();
+        }
+
+        if (mojangSessionVerifier != null) {
+            mojangSessionVerifier.shutdown();
+        }
+
         if (luckPermsAdapter != null) {
             luckPermsAdapter.shutdown();
         }
@@ -184,6 +218,8 @@ public class ValleyAuth extends JavaPlugin {
     public CertificateValidator getCertificateValidator() { return certificateValidator; }
     public CertificateEnforcer getCertificateEnforcer() { return certificateEnforcer; }
     public FloodgateAdapter getFloodgateAdapter() { return floodgateAdapter; }
+    public MojangApiClient getMojangApiClient() { return mojangApiClient; }
+    public MojangSessionVerifier getMojangSessionVerifier() { return mojangSessionVerifier; }
     public LuckPermsAdapter getLuckPermsAdapter() { return luckPermsAdapter; }
     public UnsafeAddonManager getUnsafeAddonManager() { return unsafeAddonManager; }
     public VLinkWebServer getWebServer() { return webServer; }

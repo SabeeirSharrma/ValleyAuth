@@ -9,10 +9,12 @@ website: https://github.com/SabeeirSharrma/ValleyAuth
 # Floodgate is a soft dependency for Bedrock support
 # Geyser is a soft dependency (required by Floodgate for Bedrock support)
 # LuckPerms is a soft dependency for permission migration
+# ProtocolLib is a soft dependency for Mojang session verification in offline-mode
 softdepend:
   - floodgate
   - geyser
   - luckperms
+  - ProtocolLib
 
 commands:
   v:
