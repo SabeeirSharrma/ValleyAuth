@@ -35,6 +35,9 @@ public class IdentityManager {
         "db", "sqlite", "sqlite3", "mdb"
     );
 
+    private static final java.util.regex.Pattern USERNAME_PATTERN = 
+        java.util.regex.Pattern.compile("^[a-zA-Z0-9_]{3,16}$");
+
     public IdentityManager(ValleyAuth plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager();
@@ -42,11 +45,19 @@ public class IdentityManager {
         scanPluginStorage();
     }
 
+    public boolean isValidUsername(String username) {
+        return username != null && USERNAME_PATTERN.matcher(username).matches();
+    }
+
     /**
      * Get or create an identity for a Premium Java player.
      * Uses the Mojang UUID directly.
      */
     public Identity getOrCreatePremium(String username, UUID mojangUuid) {
+        if (!isValidUsername(username)) {
+            plugin.getLogger().warning("[Valley Auth] Invalid premium username rejected: " + username);
+            return null;
+        }
         String prefix = config.getPremiumPrefix();
         String canonicalName = prefix + username;
         
@@ -64,6 +75,10 @@ public class IdentityManager {
             plugin.getLogger().warning("[Valley Auth] Bedrock identity requested but Floodgate is not available.");
             return null;
         }
+        if (!isValidUsername(username)) {
+            plugin.getLogger().warning("[Valley Auth] Invalid bedrock username rejected: " + username);
+            return null;
+        }
         String prefix = config.getBedrockPrefix();
         String canonicalName = prefix + username;
         
@@ -76,6 +91,10 @@ public class IdentityManager {
      * Generates a persistent UUID if none exists.
      */
     public Identity getOrCreateOffline(String username) {
+        if (!isValidUsername(username)) {
+            plugin.getLogger().warning("[Valley Auth] Invalid offline username rejected: " + username);
+            return null;
+        }
         String prefix = config.getOfflinePrefix();
         String canonicalName = prefix + username;
         

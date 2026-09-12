@@ -63,9 +63,13 @@ public class ValleyAuth extends JavaPlugin {
         identityManager = new IdentityManager(this);
 
         // Phase 2: LuckPerms integration
-        getLogger().info("[Valley Auth] Initializing LuckPerms adapter...");
-        luckPermsAdapter = new LuckPermsAdapter(this);
-        luckPermsAdapter.initialize();
+        if (getServer().getPluginManager().getPlugin("LuckPerms") != null) {
+            getLogger().info("[Valley Auth] Initializing LuckPerms adapter...");
+            luckPermsAdapter = new LuckPermsAdapter(this);
+            luckPermsAdapter.initialize();
+        } else {
+            getLogger().info("[Valley Auth] LuckPerms not found — permission migration disabled.");
+        }
         
         // Phase 2: ValleyCert initialization
         getLogger().info("[Valley Auth] Initializing certificate system...");

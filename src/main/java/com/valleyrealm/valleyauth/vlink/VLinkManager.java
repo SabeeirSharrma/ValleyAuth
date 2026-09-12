@@ -1,7 +1,6 @@
 package com.valleyrealm.valleyauth.vlink;
 
 import com.valleyrealm.valleyauth.ValleyAuth;
-import com.valleyrealm.valleyauth.cert.CertificateValidator;
 import com.valleyrealm.valleyauth.config.ConfigManager;
 import com.valleyrealm.valleyauth.identity.Identity;
 import com.valleyrealm.valleyauth.identity.IdentityType;
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * VLink - Valley Auth's secure identity-linking utility.
@@ -33,7 +33,6 @@ public class VLinkManager {
 
     private final ValleyAuth plugin;
     private final ConfigManager config;
-    private final CertificateValidator certValidator;
     
     // Active VLink sessions (sessionId -> session)
     private final Map<String, VLinkSession> sessions = new ConcurrentHashMap<>();
@@ -49,9 +48,7 @@ public class VLinkManager {
     public VLinkManager(ValleyAuth plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager();
-        this.certValidator = new CertificateValidator(plugin);
         
-        // Start cleanup task
         startCleanupTask();
     }
 
@@ -65,7 +62,7 @@ public class VLinkManager {
      */
     public VLinkResult createSession(Identity sourceIdentity, IdentityType destinationType, String pluginId) {
         // Validate certificate if plugin is requesting
-        if (pluginId != null && !certValidator.isValid(pluginId, "VLINK")) {
+        if (pluginId != null && !plugin.getCertificateValidator().isValid(pluginId, "VLINK")) {
             return VLinkResult.denied("Invalid or missing certificate for VLink operation.");
         }
         

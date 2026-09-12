@@ -83,9 +83,9 @@ public class ConfigManager {
         vlinkSslKeystoreType = config.getString("vlink.ssl.keystore-type", "JKS");
 
         // Authentication settings
-        loginTimeoutSeconds = config.getInt("auth.login-timeout-seconds", 60);
-        maxPasswordLength = config.getInt("auth.max-password-length", 32);
-        minPasswordLength = config.getInt("auth.min-password-length", 6);
+        loginTimeoutSeconds = config.getInt("authentication.login-timeout-seconds", 60);
+        maxPasswordLength = config.getInt("authentication.max-password-length", 32);
+        minPasswordLength = config.getInt("authentication.min-password-length", 6);
 
         // Security settings
         enforceCertificateAuthorization = config.getBoolean("security.enforce-certificate-authorization", true);

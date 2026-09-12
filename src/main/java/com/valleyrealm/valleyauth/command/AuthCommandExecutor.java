@@ -81,6 +81,12 @@ public class AuthCommandExecutor implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleVLink(Player player, String[] args) {
+        // /v requires authentication
+        if (!plugin.getAuthenticationManager().isAuthenticated(player.getUniqueId())) {
+            player.sendMessage("§cYou must be logged in to use this command.");
+            return true;
+        }
+
         if (args.length < 2) {
             player.sendMessage("§cUsage: /v link <code>");
             return true;
