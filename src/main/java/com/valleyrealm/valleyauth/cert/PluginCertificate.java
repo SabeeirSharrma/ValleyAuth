@@ -1,34 +1,29 @@
 package com.valleyrealm.valleyauth.cert;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Represents a validated certificate returned from ValleyCertAPI.
- * Used by ValleyAuth Core for local certificate caching and capability checks.
- *
- * Includes the encrypted revocation timestamp from the CA — never plaintext.
- */
 public class PluginCertificate {
 
-    private final String certificateId;
-    private final String pluginId;
-    private final List<String> capabilities;
-    private final Date issuanceDate;
-    private final Date expirationDate;
-    private final String issuer;
-    private final String signature;
-    private final String status;
-    private final String encryptedRevocationTimestamp;
+    private String certificateId;
+    private String pluginId;
+    private List<String> capabilities;
+    private Date issuanceDate;
+    private Date expirationDate;
+    private String issuer;
+    private String signature;
+    private String status;
+    private String encryptedRevocationTimestamp;
 
     public PluginCertificate(String certificateId, String pluginId, List<String> capabilities,
                              Date issuanceDate, Date expirationDate, String issuer,
                              String signature, String status, String encryptedRevocationTimestamp) {
         this.certificateId = certificateId;
         this.pluginId = pluginId;
-        this.capabilities = capabilities;
-        this.issuanceDate = issuanceDate;
-        this.expirationDate = expirationDate;
+        this.capabilities = capabilities != null ? List.copyOf(capabilities) : List.of();
+        this.issuanceDate = issuanceDate != null ? new Date(issuanceDate.getTime()) : new Date();
+        this.expirationDate = expirationDate != null ? new Date(expirationDate.getTime()) : new Date();
         this.issuer = issuer;
         this.signature = signature;
         this.status = status;
@@ -38,8 +33,8 @@ public class PluginCertificate {
     public String getCertificateId() { return certificateId; }
     public String getPluginId() { return pluginId; }
     public List<String> getCapabilities() { return capabilities; }
-    public Date getIssuanceDate() { return issuanceDate; }
-    public Date getExpirationDate() { return expirationDate; }
+    public Date getIssuanceDate() { return new Date(issuanceDate.getTime()); }
+    public Date getExpirationDate() { return new Date(expirationDate.getTime()); }
     public String getIssuer() { return issuer; }
     public String getSignature() { return signature; }
     public String getStatus() { return status; }
