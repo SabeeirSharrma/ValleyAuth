@@ -155,12 +155,45 @@ public class ValleyCertClient {
                 } else {
                     plugin.getLogger().warning("[ValleyCert Client] CA rejected request: " + respBody.get("message").getAsString() + ". See " + docsUrl);
                 }
+            } else if (response.statusCode() == 400) {
+                caAvailable = true;
+                JsonObject respBody = gson.fromJson(response.body(), JsonObject.class);
+                String msg = respBody.has("message") ? respBody.get("message").getAsString() : "";
+                if (msg.contains("already has a valid certificate")) {
+                    plugin.getLogger().info("[ValleyCert Client] Plugin already has a cert, fetching existing...");
+                    return fetchExistingCertificate(pluginId);
+                }
+                plugin.getLogger().warning("[ValleyCert Client] CA returned HTTP 400: " + msg + ". See " + docsUrl);
             } else {
                 plugin.getLogger().warning("[ValleyCert Client] CA returned HTTP " + response.statusCode() + ". See " + docsUrl);
             }
         } catch (IOException | InterruptedException e) {
             caAvailable = false;
             plugin.getLogger().warning("[ValleyCert Client] CA request failed: " + e.getMessage() + ". See " + docsUrl);
+        }
+        return null;
+    }
+
+    private PluginCertificate fetchExistingCertificate(String pluginId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(apiUrl + "/api/certificate/plugin/" + pluginId))
+                .GET()
+                .timeout(java.time.Duration.ofSeconds(10))
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonObject respBody = gson.fromJson(response.body(), JsonObject.class);
+                if (respBody.get("success").getAsBoolean()) {
+                    JsonObject certJson = respBody.getAsJsonObject("certificate");
+                    return parsePluginCertificate(certJson);
+                }
+            }
+            plugin.getLogger().warning("[ValleyCert Client] Failed to fetch existing cert for " + pluginId + ": HTTP " + response.statusCode());
+        } catch (IOException | InterruptedException e) {
+            plugin.getLogger().warning("[ValleyCert Client] Error fetching existing cert: " + e.getMessage());
         }
         return null;
     }
