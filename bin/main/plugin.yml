@@ -1,0 +1,33 @@
+name: ValleyAuth
+version: '0.1.0-alpha'
+main: com.valleyrealm.valleyauth.ValleyAuthPlugin
+description: Authentication, identity, and player-data migration plugin for Paper servers
+author: Sabeeir
+api-version: '1.21'
+
+softdepend:
+  - floodgate
+  - Geyser-Spigot
+  - ProtocolLib
+  - packetevents
+
+commands:
+  register:
+    description: Register a new Offline account
+    usage: /register <password> <confirmPassword>
+    permission: valleyauth.register
+  login:
+    description: Login to your Offline account
+    usage: /login <password>
+    permission: valleyauth.login
+
+permissions:
+  valleyauth.register:
+    description: Allows registration
+    default: true
+  valleyauth.login:
+    description: Allows login
+    default: true
+  valleyauth.admin:
+    description: Admin commands
+    default: op
