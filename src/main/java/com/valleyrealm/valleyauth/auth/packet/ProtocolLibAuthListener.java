@@ -352,8 +352,12 @@ public class ProtocolLibAuthListener extends PacketAdapter {
         UUID offlineUuid = plugin.getIdentityManager().getOrCreateOfflineUuid(username);
         String offlineUsername = plugin.getIdentityManager().getCanonicalName(IdentityType.OFFLINE, username);
         plugin.getAuthManager().setAuthenticated(offlineUuid, AuthState.OFFLINE);
+        plugin.getAuthManager().setAuthenticated(paperOfflineUuid(offlineUsername), AuthState.OFFLINE);
+        if (clientUuid != null && !clientUuid.equals(offlineUuid)) {
+            plugin.getAuthManager().setAuthenticated(clientUuid, AuthState.OFFLINE);
+        }
         plugin.getLogger().info("Offline identity assigned: " + offlineUsername + " (" + offlineUuid + ")");
-        resumeLoginWithUuid(player, username, offlineUuid);
+        resumeLoginWithUuid(player, offlineUsername, offlineUuid);
     }
 
     /**
@@ -465,6 +469,10 @@ public class ProtocolLibAuthListener extends PacketAdapter {
      * ProtocolLib-specific pending verification state.
      * Stores Player reference instead of User (ProtocolLib uses Player objects).
      */
+    private static UUID paperOfflineUuid(String username) {
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
     private static final class PendingVerificationLib {
         private final String username;
         private final UUID clientUuid;

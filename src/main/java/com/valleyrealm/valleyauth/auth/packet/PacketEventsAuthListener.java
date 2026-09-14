@@ -336,7 +336,7 @@ public class PacketEventsAuthListener extends PacketListenerAbstract {
         UUID offlineUuid = plugin.getIdentityManager().getOrCreateOfflineUuid(username);
         String offlineUsername = plugin.getIdentityManager().getCanonicalName(IdentityType.OFFLINE, username);
         plugin.getAuthManager().setAuthenticated(offlineUuid, AuthState.OFFLINE);
-        plugin.getAuthManager().setAuthenticated(paperOfflineUuid(username), AuthState.OFFLINE);
+        plugin.getAuthManager().setAuthenticated(paperOfflineUuid(offlineUsername), AuthState.OFFLINE);
         if (clientUuid != null && !clientUuid.equals(offlineUuid)) {
             plugin.getAuthManager().setAuthenticated(clientUuid, AuthState.OFFLINE);
         }

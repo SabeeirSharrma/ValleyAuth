@@ -29,7 +29,7 @@ ValleyAuth forces players on offline-mode servers to prove Mojang account owners
 - Java 21+
 - packetevents 2.13.0 (required for forced auth)
 - ProtocolLib 5.4.0 (optional fallback)
-- Floodgate (optional, for Bedrock players)
+- Floodgate (optional, see [crossplay-support](#crossplay-support))
 
 ## Build
 
@@ -60,9 +60,54 @@ ValleyAuth detects the server's `online-mode` setting automatically:
 - `online-mode=true` - ValleyAuth does nothing, vanilla handles auth
 - `online-mode=false` - ValleyAuth forces Mojang verification for all non-Floodgate players
 
-## Floodgate Support
+## Crossplay Support
 
-If Floodgate is installed, Bedrock players are detected automatically and routed to their Floodgate identity. No configuration needed.
+**IMPORTANT FOR SERVERS USING GEYSERMC FOR CROSSPLAY**
+
+If your server has crossplay and is using GeyserMC for crossplay, Floodgate is required for ValleyAuth.
+
+### Why is floodgate required to use ValleyAuth for my crossplay server?
+
+In short: ValleyAuth's forced auth flow works by intercepting the encryption handshake. When a player connects, ValleyAuth sends an EncryptionRequest. Java clients respond with an EncryptionResponse that proves they have a valid Mojang account. Bedrock clients can't do this - they're not Java clients. GeyserMC handles the protocol translation, but the authentication handshake is fundamentally different.
+Without Floodgate, ValleyAuth would send an EncryptionRequest to a Bedrock player, the Bedrock client would either reject it or respond incorrectly, and the player would be stuck in a verification loop or kicked. Floodgate tells ValleyAuth "this is a Bedrock player, don't bother with the Java encryption handshake - just let them in."
+
+<details>
+<summmary>Long Version</summary>
+
+Floodgate isn't required to use ValleyAuth in typical situations. But for crossplay servers (Java + Bedrock), it's practically essential. Here's the full picture:
+
+**Without Floodgate:**
+
+- Bedrock players connect via GeyserMC, which translates Bedrock protocol to Java
+- GeyserMC assigns them a UUID derived from their XUID (Xbox User ID)
+- GeyserMC adds a . prefix to their username (e.g., .Steve)
+- ValleyAuth has no way to know if a player is Bedrock or Java without Floodgate
+- Bedrock players would be forced through /register and /login like any other offline player
+- Their UUID and username prefix would be inconsistent across sessions
+
+**With Floodgate:**
+
+- Floodgate sits on top of GeyserMC and provides a proper API to identify Bedrock players
+- ValleyAuth calls `FloodgateApi.getInstance().isFloodgatePlayer(uuid)` (Basically the Floodgate API) to detect Bedrock connections
+- When a Bedrock player is detected, ValleyAuth immediately assigns them a Bedrock identity (. prefix + Floodgate UUID)
+- Bedrock players skip the forced auth flow entirely - they don't need to /register or /login
+- Their identity is stable and consistent across sessions
+
+**The technical reason:**
+
+ValleyAuth's forced auth flow works by intercepting the encryption handshake. When a player connects, ValleyAuth sends an EncryptionRequest. Java clients respond with an EncryptionResponse that proves they have a valid Mojang account. Bedrock clients can't do this - they're not Java clients. GeyserMC handles the protocol translation, but the authentication handshake is fundamentally different.
+Without Floodgate, ValleyAuth would send an EncryptionRequest to a Bedrock player, the Bedrock client would either reject it or respond incorrectly, and the player would be stuck in a verification loop or kicked. Floodgate tells ValleyAuth "this is a Bedrock player, don't bother with the Java encryption handshake - just let them in."
+
+For your server specifically:
+
+Since you're running a crossplay server, Floodgate + GeyserMC means:
+
+- Java players with Mojang accounts → Premium identity, no password needed
+- Java players without Mojang accounts (TLauncher, etc.) → Offline identity, must /register or /login
+- Bedrock players → Bedrock identity, no password needed (handled by Floodgate)
+Without Floodgate, all Bedrock players would be treated as Offline players and forced to authenticate, which they can't do through the Java auth flow.
+
+</details>
 
 ## Project Structure
 

@@ -3,6 +3,7 @@ package com.valleyrealm.valleyauth.auth;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.valleyrealm.valleyauth.ValleyAuthPlugin;
 import com.valleyrealm.valleyauth.auth.packet.PacketEventsAuthListener;
+import com.valleyrealm.valleyauth.floodgate.FloodgateHook;
 import com.valleyrealm.valleyauth.session.MojangSessionVerifier;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -172,10 +173,13 @@ public class AuthManager implements Listener {
         String username = player.getName();
 
         if (plugin.isOnlineMode()) {
-            // Section 79.3: Premium identity — real Mojang UUID, no password needed
             authStates.put(uuid, AuthState.AUTHENTICATED);
-            plugin.getLogger().info("Premium player joined: " + username + " (" + uuid + ")");
-            // TODO: Create/update database record for migration bookkeeping
+
+            if (plugin.isFloodgateEnabled() && FloodgateHook.isBedrockPlayer(uuid)) {
+                plugin.getLogger().info("Bedrock player joined (online-mode): " + username + " (" + uuid + ")");
+            } else {
+                plugin.getLogger().info("Premium player joined: " + username + " (" + uuid + ")");
+            }
         }
     }
 
