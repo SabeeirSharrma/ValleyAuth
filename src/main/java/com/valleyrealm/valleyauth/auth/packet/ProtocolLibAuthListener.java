@@ -9,6 +9,7 @@ import com.comphenix.protocol.reflect.FuzzyReflection;
 import com.comphenix.protocol.wrappers.BukkitConverters;
 import com.valleyrealm.valleyauth.ValleyAuthPlugin;
 import com.valleyrealm.valleyauth.auth.AuthState;
+import com.valleyrealm.valleyauth.floodgate.FloodgateHook;
 import com.valleyrealm.valleyauth.identity.IdentityType;
 import com.valleyrealm.valleyauth.session.MojangSessionVerifier;
 import io.netty.channel.Channel;
@@ -115,6 +116,14 @@ public class ProtocolLibAuthListener extends PacketAdapter {
         }
 
         UUID playerUUID = readPlayerUUID(packet);
+
+        // Bedrock players through Floodgate/Geyser — skip auth, let Floodgate handle it
+        if (playerUUID != null && FloodgateHook.isBedrockPlayer(playerUUID)) {
+            return;
+        }
+        if (FloodgateHook.isBedrockPlayerByName(username)) {
+            return;
+        }
 
         String connectionKey = connectionKey(player);
 

@@ -50,6 +50,27 @@ public final class FloodgateHook {
     }
 
     /**
+     * Check Floodgate's connected player list for a matching username.
+     * Geyser may not include the Floodgate UUID in LOGIN_START,
+     * so we also check by iterating Floodgate's player map.
+     */
+    public static boolean isBedrockPlayerByName(String username) {
+        if (!isAvailable()) return false;
+        try {
+            var players = org.geysermc.floodgate.api.FloodgateApi.getInstance().getPlayers();
+            for (var player : players) {
+                String javaUsername = player.getJavaUsername();
+                if (javaUsername != null && (javaUsername.equals(username) || javaUsername.equals("." + username))) {
+                    return true;
+                }
+            }
+        } catch (NoClassDefFoundError | Exception e) {
+            return false;
+        }
+        return false;
+    }
+
+    /**
      * Check if the given player is a Bedrock player.
      */
     public static boolean isBedrockPlayer(Player player) {

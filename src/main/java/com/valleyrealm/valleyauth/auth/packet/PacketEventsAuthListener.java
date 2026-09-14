@@ -11,6 +11,7 @@ import com.github.retrooper.packetevents.wrapper.login.client.WrapperLoginClient
 import com.github.retrooper.packetevents.wrapper.login.server.WrapperLoginServerEncryptionRequest;
 import com.valleyrealm.valleyauth.ValleyAuthPlugin;
 import com.valleyrealm.valleyauth.auth.AuthState;
+import com.valleyrealm.valleyauth.floodgate.FloodgateHook;
 import com.valleyrealm.valleyauth.identity.IdentityType;
 import com.valleyrealm.valleyauth.session.MojangSessionVerifier;
 import io.netty.channel.ChannelPipeline;
@@ -91,10 +92,19 @@ public class PacketEventsAuthListener extends PacketListenerAbstract {
             return;
         }
 
+        UUID playerUUID = wrapper.getPlayerUUID().orElse(null);
+
+        // Bedrock players through Floodgate/Geyser — skip auth entirely, let Floodgate handle it
+        if (playerUUID != null && FloodgateHook.isBedrockPlayer(playerUUID)) {
+            return;
+        }
+        if (FloodgateHook.isBedrockPlayerByName(username)) {
+            return;
+        }
+
         User user = event.getUser();
         ClientVersion clientVersion = user.getClientVersion();
         String connectionKey = connectionKey(user);
-        UUID playerUUID = wrapper.getPlayerUUID().orElse(null);
 
         event.setCancelled(true);
 
