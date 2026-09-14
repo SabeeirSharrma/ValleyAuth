@@ -31,7 +31,13 @@ ValleyAuth forces players on offline-mode servers to prove Mojang account owners
 - ProtocolLib 5.4.0 (optional fallback)
 - Floodgate (optional, see [crossplay-support](#crossplay-support))
 
-## Build
+## Install
+
+**Option A: Download from Releases (recommended)**
+
+Download the latest `ValleyAuth-0.1.0-alpha.jar` from [Releases](https://github.com/SabeeirSharrma/ValleyRealm/releases) and drop it into your server's `plugins/` folder.
+
+**Option B: Build from Source**
 
 ```bash
 cd ValleyAuth
@@ -40,10 +46,8 @@ cd ValleyAuth
 
 Output: `ValleyAuth/build/libs/ValleyAuth-0.1.0-alpha.jar`
 
-## Install
+Then copy the JAR into your server's `plugins/` folder.
 
-1. Drop `ValleyAuth-0.1.0-alpha.jar` into your server's `plugins/` folder
-2. Install packetevents (required) - https://www.spigotmc.org/resources/packetevents.18637/
 3. Restart the server
 
 ## Commands
